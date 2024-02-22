@@ -1,0 +1,9 @@
+redis:
+  host: 0.0.0.0
+  port: "6379"
+  password: pass
+server:
+  domain: "example.ru"
+  http_address: :80
+  https_address: :443
+  mini_app_token: token
