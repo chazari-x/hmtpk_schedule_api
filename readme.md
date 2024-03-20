@@ -104,7 +104,7 @@ services:
     restart: always
     command: [ "/app/main", "http"]
   grpc-schedule-server:
-    container_name: http-schedule-server
+    container_name: grpc-schedule-server
     build: .
     ports:
       - "50051:50051"
