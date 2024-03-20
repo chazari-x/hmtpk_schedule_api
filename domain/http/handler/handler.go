@@ -32,7 +32,7 @@ func Router(cfg config.HTTP, sch *schedule.Controller) *chi.Mux {
 	router.Get("/*", router.NotFoundHandler())
 	router.Get("/groups", h.groups)
 	router.Get("/teachers", h.teachers)
-	router.Get("/", h.get)
+	router.Get("/schedule", h.get)
 	router.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "domain/http/images/favicon.ico")
 	})

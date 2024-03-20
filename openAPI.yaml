@@ -7,7 +7,7 @@ servers:
   - url: "http://localhost:80"
     description: Локальный сервер
 paths:
-  /:
+  /schedule:
     get:
       summary: Получить расписание
       parameters:
