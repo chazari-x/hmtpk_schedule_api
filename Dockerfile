@@ -19,7 +19,7 @@ WORKDIR /app
 COPY --from=builder /app/main /app/
 
 COPY etc/config.docker.yaml /app/etc/config.yaml
-COPY domain/server/images /app/domain/server/images
+COPY domain/http/images /app/domain/http/images
 RUN chown api:api /app
 RUN chmod +x /app
 

@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+option go_package = "../protobuf";
+
+package Schedule;
+
+message Request {
+  string token = 1;
+}
+
+message Response {
+  string message = 1;
+}
+
+message ScheduleRequest {
+  string token = 1;
+  string date = 2;
+  string group = 3;
+  string teacher = 4;
+}
+
+message ScheduleResponse {
+  string message = 1;
+}
+
+service Schedule {
+  rpc GetGroups (Request) returns (Response);
+  rpc GetTeachers (Request) returns (Response);
+  rpc GetSchedule (ScheduleRequest) returns (ScheduleResponse);
+}

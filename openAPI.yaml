@@ -1,0 +1,126 @@
+openapi: 3.0.0
+info:
+  title: API Расписания ХМТПК
+  description: API для получения информации о преподавателях, группах и расписании Ханты-Мансийского технолого-педагогического колледжа (ХМТПК).
+  version: 1.0.0
+servers:
+  - url: "http://localhost:80"
+    description: Локальный сервер
+paths:
+  /:
+    get:
+      summary: Получить расписание
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+          description: Дата в формате "dd.mm.yyyy". Если не указана, будет использована текущая дата.
+        - in: query
+          name: group
+          schema:
+            type: string
+          description: Название группы для фильтрации расписания.
+        - in: query
+          name: teacher
+          schema:
+            type: string
+          description: Имя преподавателя для фильтрации расписания.
+      responses:
+        '200':
+          description: Успешный запрос. Возвращает расписание.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  items:
+                    $ref: '#/components/schemas/Schedule'
+        '400':
+          description: Неверный запрос. Параметры запроса некорректны или отсутствуют.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '408':
+          description: Таймаут запроса. Сервер не смог обработать запрос в течение указанного времени.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера. Попробуйте повторить запрос позже.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /teachers:
+    get:
+      summary: Получить список преподавателей
+      responses:
+        '200':
+          description: Успешный запрос. Возвращает список преподавателей.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Внутренняя ошибка сервера. Попробуйте повторить запрос позже.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /groups:
+    get:
+      summary: Получить список групп
+      responses:
+        '200':
+          description: Успешный запрос. Возвращает список групп.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Внутренняя ошибка сервера. Попробуйте повторить запрос позже.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Schedule:
+      type: object
+      properties:
+        date:
+          type: string
+        lessons:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lesson'
+        href:
+          type: string
+    Lesson:
+      type: object
+      properties:
+        num:
+          type: string
+        time:
+          type: string
+        name:
+          type: string
+        room:
+          type: string
+        location:
+          type: string
+        group:
+          type: string
+        subgroup:
+          type: string
+        teacher:
+          type: string
+    Error:
+      type: object
+      properties:
+        message:
+          type: string

@@ -1,4 +1,4 @@
-package server
+package http
 
 import (
 	"crypto/tls"
@@ -10,24 +10,25 @@ import (
 
 	schedule "github.com/chazari-x/hmtpk_schedule"
 	"github.com/chazari-x/hmtpk_schedule_api/config"
-	"github.com/chazari-x/hmtpk_schedule_api/domain/server/handler"
+	"github.com/chazari-x/hmtpk_schedule_api/domain/http/handler"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/acme/autocert"
 )
 
-func StartServer(cfg config.Server, sch *schedule.Controller) error {
+func Start(cfg config.HTTP, sch *schedule.Controller) error {
 	if cfg.HTTPSAddress == "" {
-		log.Tracef("server: %s%s", cfg.Domain, cfg.HTTPAddress)
+		log.Tracef("http server: %s%s", cfg.Domain, cfg.HTTPAddress)
 
 		return http.ListenAndServe(cfg.HTTPAddress, handler.Router(cfg, sch))
 	}
 
-	log.Tracef("server: %s%s and %s%s", cfg.Domain, cfg.HTTPAddress, cfg.Domain, cfg.HTTPSAddress)
-
 	certManager := autocert.Manager{
-		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(cfg.Domain),
-		Cache:      autocert.DirCache("/tmp/cache-golang-autocert"),
+		Prompt: autocert.AcceptTOS,
+		Cache:  autocert.DirCache("/tmp/cache-golang-autocert"),
+	}
+
+	if cfg.Domain != "localhost" {
+		certManager.HostPolicy = autocert.HostWhitelist(cfg.Domain)
 	}
 
 	if u, _ := user.Current(); u != nil {
@@ -49,8 +50,10 @@ func StartServer(cfg config.Server, sch *schedule.Controller) error {
 		WriteTimeout: 10 * time.Second,
 	}
 
+	log.Tracef("http server: %s%s and %s%s", cfg.Domain, cfg.HTTPAddress, cfg.Domain, cfg.HTTPSAddress)
+
 	go func() {
-		log.Fatal(http.ListenAndServe(cfg.HTTPAddress, certManager.HTTPHandler(nil)))
+		log.Fatal(http.ListenAndServe(cfg.HTTPAddress, certManager.HTTPHandler(handler.Router(cfg, sch))))
 	}()
 
 	return server.ListenAndServeTLS("", "")

@@ -7,11 +7,18 @@ services:
     ports:
       - '6379:6379'
     command: redis-server --save 20 1 --loglevel warning --requirepass password
-  Server:
-    container_name: Server
-    image: "chazari/hmtpk_schedule_api:latest"
+  http-schedule-server:
+    container_name: http-schedule-server
+    build: .
     ports:
       - "80:80"
       - "443:443"
     restart: always
-    command: [ "/app/main", "Server"]
+    command: [ "/app/main", "http"]
+  grpc-schedule-server:
+    container_name: http-schedule-server
+    build: .
+    ports:
+      - "50051:50051"
+    restart: always
+    command: [ "/app/main", "grpc"]
