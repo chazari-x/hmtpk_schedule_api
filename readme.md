@@ -40,7 +40,7 @@ docker-compose up grpc-schedule-server
 
 - `GET /groups`: Получить список групп.
 - `GET /teachers`: Получить список преподавателей.
-- `GET /`: Получить общее расписание занятий.
+- `GET /schedule`: Получить общее расписание занятий.
 
 #### Методы gRPC
 
