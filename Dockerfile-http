@@ -1,0 +1,38 @@
+# Сборка бинарного файла
+FROM golang:1.21 AS builder
+
+WORKDIR /app
+
+# Копирование зависимостей и сборка бинарного файла
+COPY go.mod go.sum main.go ./
+COPY domain/http ./domain/http
+COPY cmd/config.go cmd/root.go cmd/http.go ./cmd/
+COPY config ./config
+COPY redis ./redis
+
+RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+
+# Конечный образ
+FROM alpine:3.14
+
+# Добавляем пользователя api
+RUN adduser -D api
+
+WORKDIR /app
+
+# Копируем бинарный файл из предыдущего этапа
+COPY --from=builder /app/main /app/
+
+# Копируем конфигурационный файл и статические ресурсы
+COPY /etc/config.docker.yaml /app/etc/config.yaml
+COPY /domain/http/images /app/domain/http/images
+
+# Устанавливаем владельца и права доступа
+RUN chown api:api /app && chmod +x /app
+
+# Переключаемся на пользователя api
+USER api
+
+# Запускаем приложение
+CMD ["/app/main", "http"]

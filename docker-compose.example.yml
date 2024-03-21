@@ -9,16 +9,20 @@ services:
     command: redis-server --save 20 1 --loglevel warning --requirepass password
   http-schedule-server:
     container_name: http-schedule-server
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile-http
     ports:
       - "80:80"
       - "443:443"
     restart: always
-    command: [ "/app/main", "http"]
+    command: [ "/app/main", "http" ]
   grpc-schedule-server:
     container_name: grpc-schedule-server
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile-grpc
     ports:
       - "50051:50051"
     restart: always
-    command: [ "/app/main", "grpc"]
+    command: [ "/app/main", "grpc" ]
