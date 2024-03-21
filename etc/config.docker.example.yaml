@@ -5,8 +5,8 @@ redis:
 server:
   http:
     domain: hmtpksch.chazari.ru
-    http_address: :8080
-    https_address: ""
+    http_address: :80
+    https_address: :443
     mini_app_token: token
   grpc:
     domain: hmtpksch.chazari.ru
