@@ -53,6 +53,18 @@ docker-compose up grpc-schedule-server
 
 Это запустит gRPC сервер на порту 50051.
 
+#### Build Docker Images
+
+Чтобы создать Docker образы при обновлении кода, выполните следующие команды:
+
+```bash
+docker-compose build http-schedule-server
+```
+
+```bash
+docker-compose build grpc-schedule-server
+```
+
 ### API Endpoints
 
 #### HTTP Конечные Точки
