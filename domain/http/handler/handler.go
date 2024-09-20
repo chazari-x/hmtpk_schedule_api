@@ -3,14 +3,12 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
-	schedule "github.com/chazari-x/hmtpk_schedule"
-	"github.com/chazari-x/hmtpk_schedule/model"
+	"github.com/chazari-x/hmtpk_parser/v2"
 	"github.com/chazari-x/hmtpk_schedule_api/config"
 	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
@@ -19,10 +17,10 @@ import (
 
 type Handler struct {
 	cfg config.HTTP
-	sch *schedule.Controller
+	sch *hmtpk_parser.Controller
 }
 
-func Router(cfg config.HTTP, sch *schedule.Controller) *chi.Mux {
+func Router(cfg config.HTTP, sch *hmtpk_parser.Controller) *chi.Mux {
 	h := &Handler{
 		cfg: cfg,
 		sch: sch,
@@ -32,7 +30,9 @@ func Router(cfg config.HTTP, sch *schedule.Controller) *chi.Mux {
 	router.Get("/*", router.NotFoundHandler())
 	router.Get("/groups", h.groups)
 	router.Get("/teachers", h.teachers)
-	router.Get("/schedule", h.get)
+	router.Get("/schedule", h.schedule)
+	router.Get("/announces", h.announces)
+
 	router.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "domain/http/images/favicon.ico")
 	})
@@ -44,87 +44,67 @@ type Error struct {
 	Error string `json:"error"`
 }
 
-func (h *Handler) teachers(w http.ResponseWriter, _ *http.Request) {
-	get, err := http.Get("https://api.vk.com/method/execute.getTeachers?v=5.154&access_token=" + h.cfg.MiniAppToken)
+func write(w http.ResponseWriter, statusCode int, data interface{}) {
+	if statusCode != http.StatusOK {
+		w.WriteHeader(statusCode)
+	}
+
+	marshal, err := json.Marshal(data)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		if marshal, err := json.Marshal(Error{http.StatusText(http.StatusInternalServerError)}); err == nil {
-			_, _ = w.Write(marshal)
-		}
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	if get.StatusCode != 200 {
-		w.WriteHeader(http.StatusInternalServerError)
-		if marshal, err := json.Marshal(Error{fmt.Sprintf("vk api response status code: %s", http.StatusText(get.StatusCode))}); err == nil {
-			_, _ = w.Write(marshal)
-		}
-
-		return
-	}
-
-	all, err := io.ReadAll(get.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		if marshal, err := json.Marshal(Error{http.StatusText(http.StatusInternalServerError)}); err == nil {
-			_, _ = w.Write(marshal)
-		}
-		return
-	}
-
-	if _, err = w.Write(all); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		if marshal, err := json.Marshal(Error{http.StatusText(http.StatusInternalServerError)}); err == nil {
-			_, _ = w.Write(marshal)
-		}
-	}
+	_, _ = w.Write(marshal)
 }
 
-func (h *Handler) groups(w http.ResponseWriter, _ *http.Request) {
-	get, err := http.Get("https://api.vk.com/method/execute.getGroups?v=5.154&access_token=" + h.cfg.MiniAppToken)
+func (h *Handler) teachers(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*30)
+	defer cancel()
+
+	options, err := h.sch.GetTeacherOptions(ctx)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		if marshal, err := json.Marshal(Error{http.StatusText(http.StatusInternalServerError)}); err == nil {
-			_, _ = w.Write(marshal)
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			write(w, http.StatusInternalServerError, Error{"hmtpk not working"})
+			return
 		}
+
+		log.Error(err)
+
+		write(w, http.StatusInternalServerError, Error{http.StatusText(http.StatusInternalServerError)})
 		return
 	}
 
-	if get.StatusCode != 200 {
-		w.WriteHeader(http.StatusInternalServerError)
-		if marshal, err := json.Marshal(Error{fmt.Sprintf("vk api response status code: %s", http.StatusText(get.StatusCode))}); err == nil {
-			_, _ = w.Write(marshal)
-		}
-
-		return
-	}
-
-	all, err := io.ReadAll(get.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		if marshal, err := json.Marshal(Error{http.StatusText(http.StatusInternalServerError)}); err == nil {
-			_, _ = w.Write(marshal)
-		}
-		return
-	}
-
-	if _, err = w.Write(all); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		if marshal, err := json.Marshal(Error{http.StatusText(http.StatusInternalServerError)}); err == nil {
-			_, _ = w.Write(marshal)
-		}
-	}
+	write(w, http.StatusOK, options)
 }
 
-func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("content-type", "application/json")
+func (h *Handler) groups(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*30)
+	defer cancel()
+
+	options, err := h.sch.GetGroupOptions(ctx)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			write(w, http.StatusInternalServerError, Error{"hmtpk not working"})
+			return
+		}
+
+		log.Error(err)
+
+		write(w, http.StatusInternalServerError, Error{http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	write(w, http.StatusOK, options)
+}
+
+func (h *Handler) schedule(w http.ResponseWriter, r *http.Request) {
+	log.Trace(r.URL.String())
+
 	date := r.URL.Query().Get("date")
 	if date != "" {
 		if _, err := time.Parse("02.01.2006", date); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			if marshal, err := json.Marshal(Error{http.StatusText(http.StatusBadRequest)}); err == nil {
-				_, _ = w.Write(marshal)
-			}
+			write(w, http.StatusBadRequest, Error{http.StatusText(http.StatusBadRequest)})
 			return
 		}
 	} else {
@@ -132,69 +112,80 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	group := r.URL.Query().Get("group")
-	teacher := r.URL.Query().Get("teacher")
-
-	if group == "" && teacher == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		if marshal, err := json.Marshal(Error{http.StatusText(http.StatusBadRequest)}); err == nil {
-			_, _ = w.Write(marshal)
-		}
-
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*10)
-	defer cancel()
-
-	var sch []model.Schedule
-	var err error
-
 	if group != "" {
-		sch, err = h.sch.GetScheduleByGroup(group, date, ctx)
-	} else {
-		sch, err = h.sch.GetScheduleByTeacher(teacher, date, ctx)
-	}
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second*30)
+		defer cancel()
 
-	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			w.WriteHeader(http.StatusRequestTimeout)
-			if marshal, err := json.Marshal(Error{http.StatusText(http.StatusRequestTimeout)}); err == nil {
-				_, _ = w.Write(marshal)
+		scheduleByGroup, err := h.sch.GetScheduleByGroup(group, date, ctx)
+		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+				write(w, http.StatusInternalServerError, Error{"hmtpk not working"})
+				return
+			} else if strings.Contains(err.Error(), http.StatusText(http.StatusBadRequest)) {
+				write(w, http.StatusBadRequest, Error{http.StatusText(http.StatusBadRequest)})
+				return
 			}
+
+			log.Error(err)
+
+			write(w, http.StatusInternalServerError, Error{http.StatusText(http.StatusInternalServerError)})
 			return
 		}
 
-		if strings.Contains(err.Error(), http.StatusText(http.StatusBadRequest)) {
-			w.WriteHeader(http.StatusBadRequest)
-			if marshal, err := json.Marshal(Error{http.StatusText(http.StatusBadRequest)}); err == nil {
-				_, _ = w.Write(marshal)
+		write(w, http.StatusOK, scheduleByGroup)
+		return
+	}
+
+	teacher := r.URL.Query().Get("teacher")
+	if teacher != "" {
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second*30)
+		defer cancel()
+
+		scheduleByTeacher, err := h.sch.GetScheduleByTeacher(teacher, date, ctx)
+		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+				write(w, http.StatusInternalServerError, Error{"hmtpk not working"})
+				return
+			} else if strings.Contains(err.Error(), http.StatusText(http.StatusBadRequest)) {
+				write(w, http.StatusBadRequest, Error{http.StatusText(http.StatusBadRequest)})
+				return
 			}
+
+			log.Error(err)
+
+			write(w, http.StatusInternalServerError, Error{http.StatusText(http.StatusInternalServerError)})
+			return
+		}
+
+		write(w, http.StatusOK, scheduleByTeacher)
+		return
+	}
+
+	write(w, http.StatusBadRequest, Error{http.StatusText(http.StatusBadRequest)})
+}
+
+func (h *Handler) announces(w http.ResponseWriter, r *http.Request) {
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		write(w, http.StatusBadRequest, Error{http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*30)
+	defer cancel()
+
+	announces, err := h.sch.GetAnnounces(ctx, page)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			write(w, http.StatusInternalServerError, Error{"hmtpk not working"})
 			return
 		}
 
 		log.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		if marshal, err := json.Marshal(Error{http.StatusText(http.StatusInternalServerError)}); err == nil {
-			_, _ = w.Write(marshal)
-		}
 
+		write(w, http.StatusInternalServerError, Error{http.StatusText(http.StatusInternalServerError)})
 		return
 	}
 
-	marshal, err := json.Marshal(sch)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		if marshal, err := json.Marshal(Error{http.StatusText(http.StatusInternalServerError)}); err == nil {
-			_, _ = w.Write(marshal)
-		}
-
-		return
-	}
-
-	if _, err = w.Write(marshal); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		if marshal, err := json.Marshal(Error{http.StatusText(http.StatusInternalServerError)}); err == nil {
-			_, _ = w.Write(marshal)
-		}
-	}
+	write(w, http.StatusOK, announces)
 }

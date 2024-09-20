@@ -7,8 +7,6 @@ server:
     domain: localhost
     http_address: :8080
     https_address: ""
-    mini_app_token: token
   grpc:
     domain: localhost
     address: :50051
-    mini_app_token: token

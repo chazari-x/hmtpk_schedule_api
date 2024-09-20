@@ -3,13 +3,12 @@ package protobuf
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	schedule "github.com/chazari-x/hmtpk_schedule"
-	"github.com/chazari-x/hmtpk_schedule/model"
+	"github.com/chazari-x/hmtpk_parser/v2"
+	"github.com/chazari-x/hmtpk_parser/v2/model"
 	"github.com/chazari-x/hmtpk_schedule_api/config"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -19,67 +18,57 @@ import (
 
 type Server struct {
 	cfg config.GRPC
-	sch *schedule.Controller
+	sch *hmtpk_parser.Controller
 }
 
-func NewServer(cfg config.GRPC, sch *schedule.Controller) Server {
+func NewServer(cfg config.GRPC, sch *hmtpk_parser.Controller) Server {
 	return Server{cfg: cfg, sch: sch}
 }
 
 func (s Server) GetGroups(ctx context.Context, _ *Request) (*Response, error) {
-	url := "https://api.vk.com/method/execute.getGroups?v=5.154&access_token=" + s.cfg.MiniAppToken
-	request, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
+	options, err := s.sch.GetGroupOptions(ctx)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			return nil, status.Errorf(codes.Internal, "hmtpk not working")
+		}
+
 		log.Error(err)
+
 		return nil, status.Errorf(codes.Internal, codes.Internal.String())
 	}
 
-	client := http.Client{}
-	get, err := client.Do(request)
+	marshal, err := json.Marshal(options)
 	if err != nil {
-		log.Error(err)
 		return nil, status.Errorf(codes.Internal, codes.Internal.String())
 	}
 
-	if get.StatusCode != 200 {
-		return nil, status.Errorf(codes.Internal, codes.Internal.String())
-	}
-
-	all, err := io.ReadAll(get.Body)
-	if err != nil {
-		log.Error(err)
-		return nil, status.Errorf(codes.Internal, codes.Internal.String())
-	}
-
-	return &Response{Message: string(all)}, nil
+	return &Response{Message: string(marshal)}, nil
 }
 
 func (s Server) GetTeachers(ctx context.Context, _ *Request) (*Response, error) {
-	url := "https://api.vk.com/method/execute.getTeachers?v=5.154&access_token=" + s.cfg.MiniAppToken
-	request, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
+	options, err := s.sch.GetTeacherOptions(ctx)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			return nil, status.Errorf(codes.Internal, "hmtpk not working")
+		}
+
 		log.Error(err)
+
 		return nil, status.Errorf(codes.Internal, codes.Internal.String())
 	}
 
-	client := http.Client{}
-	get, err := client.Do(request)
+	marshal, err := json.Marshal(options)
 	if err != nil {
-		log.Error(err)
 		return nil, status.Errorf(codes.Internal, codes.Internal.String())
 	}
 
-	if get.StatusCode != 200 {
-		return nil, status.Errorf(codes.Internal, codes.Internal.String())
-	}
-
-	all, err := io.ReadAll(get.Body)
-	if err != nil {
-		log.Error(err)
-		return nil, status.Errorf(codes.Internal, codes.Internal.String())
-	}
-
-	return &Response{Message: string(all)}, nil
+	return &Response{Message: string(marshal)}, nil
 }
 
 func (s Server) GetSchedule(ctx context.Context, r *ScheduleRequest) (*ScheduleResponse, error) {

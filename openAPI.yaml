@@ -2,10 +2,14 @@ openapi: 3.0.0
 info:
   title: API Расписания ХМТПК
   description: API для получения информации о преподавателях, группах и расписании Ханты-Мансийского технолого-педагогического колледжа (ХМТПК).
-  version: 1.0.0
+  version: 2.0.0
 servers:
   - url: "http://localhost:80"
-    description: Локальный сервер
+    description: Локальный сервер 80
+  - url: "http://localhost:8080"
+    description: Локальный сервер 8080
+  - url: "https://localhost:443"
+    description: Локальный сервер https
 paths:
   /schedule:
     get:
@@ -43,14 +47,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '408':
-          description: Таймаут запроса. Сервер не смог обработать запрос в течение указанного времени.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '500':
-          description: Внутренняя ошибка сервера. Попробуйте повторить запрос позже.
+          description: Внутренняя ошибка сервера / колледж не работает. Попробуйте повторить запрос позже.
           content:
             application/json:
               schema:
@@ -66,7 +64,7 @@ paths:
               schema:
                 type: object
         '500':
-          description: Внутренняя ошибка сервера. Попробуйте повторить запрос позже.
+          description: Внутренняя ошибка сервера / колледж не работает. Попробуйте повторить запрос позже.
           content:
             application/json:
               schema:
@@ -82,7 +80,7 @@ paths:
               schema:
                 type: object
         '500':
-          description: Внутренняя ошибка сервера. Попробуйте повторить запрос позже.
+          description: Внутренняя ошибка сервера / колледж не работает. Попробуйте повторить запрос позже.
           content:
             application/json:
               schema:

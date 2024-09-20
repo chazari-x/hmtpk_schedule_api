@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/chazari-x/hmtpk_schedule"
+	"github.com/chazari-x/hmtpk_parser/v2"
 	"github.com/chazari-x/hmtpk_schedule_api/domain/http"
 	"github.com/chazari-x/hmtpk_schedule_api/redis"
 	log "github.com/sirupsen/logrus"
@@ -27,7 +27,7 @@ func init() {
 				_ = client.Close()
 			}()
 
-			schedule := hmtpk_schedule.NewController(client, log.StandardLogger())
+			schedule := hmtpk_parser.NewController(client, log.StandardLogger())
 
 			if err := http.Start(cfg.Server.HTTP, schedule); err != nil {
 				log.Error(err)

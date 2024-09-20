@@ -3,7 +3,7 @@ module github.com/chazari-x/hmtpk_schedule_api
 go 1.21
 
 require (
-	github.com/chazari-x/hmtpk_schedule v1.2.1
+	github.com/chazari-x/hmtpk_parser/v2 v2.0.6
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/sirupsen/logrus v1.9.3

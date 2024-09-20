@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/chazari-x/hmtpk_schedule_api/config"
 	log "github.com/sirupsen/logrus"
@@ -18,15 +19,17 @@ type Config struct {
 }
 
 func getConfig(cmd *cobra.Command) *Config {
-	log.SetLevel(log.TraceLevel)
-	log.SetReportCaller(true)
 	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:             true,
-		TimestampFormat:           "2006-01-02 15:04:05",
-		ForceColors:               true,
-		PadLevelText:              true,
-		EnvironmentOverrideColors: true,
+		TimestampFormat: "2006-01-02 15:04:05",
+		FullTimestamp:   true,
+		CallerPrettyfier: func(frame *runtime.Frame) (function string, file string) {
+			return "", fmt.Sprintf(" %s:%d", frame.File, frame.Line)
+		},
 	})
+
+	log.SetReportCaller(true)
+
+	log.SetLevel(log.TraceLevel)
 
 	var cfg Config
 

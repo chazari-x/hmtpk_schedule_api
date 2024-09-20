@@ -6,7 +6,7 @@ services:
     restart: always
     ports:
       - '6379:6379'
-    command: redis-server --save 20 1 --loglevel warning --requirepass password
+    command: redis-server --save 20 1 --loglevel warning --requirepass pass
   http-schedule-server:
     container_name: http-schedule-server
     build:

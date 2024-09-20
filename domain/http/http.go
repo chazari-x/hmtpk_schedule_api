@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"time"
 
-	schedule "github.com/chazari-x/hmtpk_schedule"
+	"github.com/chazari-x/hmtpk_parser/v2"
 	"github.com/chazari-x/hmtpk_schedule_api/config"
 	"github.com/chazari-x/hmtpk_schedule_api/domain/http/handler"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/acme/autocert"
 )
 
-func Start(cfg config.HTTP, sch *schedule.Controller) error {
+func Start(cfg config.HTTP, sch *hmtpk_parser.Controller) error {
 	if cfg.HTTPSAddress == "" {
 		log.Tracef("http server: %s%s", cfg.Domain, cfg.HTTPAddress)
 
@@ -46,8 +46,8 @@ func Start(cfg config.HTTP, sch *schedule.Controller) error {
 			CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
 		},
 		IdleTimeout:  time.Minute,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  1 * time.Minute,
+		WriteTimeout: 1 * time.Minute,
 	}
 
 	log.Tracef("http server: %s%s and %s%s", cfg.Domain, cfg.HTTPAddress, cfg.Domain, cfg.HTTPSAddress)
