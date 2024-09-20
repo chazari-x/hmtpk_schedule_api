@@ -26,11 +26,9 @@ server:
     domain: hmtpksch.chazari.ru
     http_address: :80
     https_address: :443
-    mini_app_token: token
   grpc:
     domain: hmtpksch.chazari.ru
     address: :50051
-    mini_app_token: token
 ```
 
 #### Запуск HTTP сервера
