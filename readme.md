@@ -18,7 +18,7 @@ API предоставляет функциональность HTTP и gRPC с�
 
 ```yaml
 redis:
-  host: schedule-redis
+  host: redis
   port: :6379
   password: password
 server:
